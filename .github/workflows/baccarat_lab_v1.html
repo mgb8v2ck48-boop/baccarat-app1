@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101820">
+<title>Baccarat Lab｜百家樂實測</title>
+<style>
+:root{--bg:#0e151c;--panel:#17232d;--panel2:#20313e;--line:#314653;--text:#f4f7f9;--muted:#a8bac5;--green:#35bd8a;--red:#e56d78;--gold:#e6bd68;--blue:#77b7e8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+header{padding:20px 16px 14px;background:#101820;position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line)}
+h1{font-size:21px;margin:0 0 5px;letter-spacing:.4px}.sub{color:var(--muted);font-size:12px}
+main{max-width:720px;margin:auto;padding:14px;display:grid;gap:13px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between}.muted{color:var(--muted)}.small{font-size:12px;color:var(--muted)}
+h2{font-size:16px;margin:0 0 12px}.tabs{display:flex;gap:7px;overflow:auto;padding:0 0 3px}
+button,select,input{font:inherit}button{border:0;border-radius:11px;padding:11px 13px;background:var(--panel2);color:var(--text);font-weight:650}
+button:active{transform:scale(.98)}button.primary{background:var(--green);color:#06251b}button.danger{background:#512b33;color:#ffdce0}button.ghost{background:transparent;border:1px solid var(--line)}
+button:disabled{opacity:.35}
+.tab{white-space:nowrap}.tab.active{background:var(--green);color:#06251b}
+.sides{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.side{border:1px solid var(--line);border-radius:13px;padding:11px;min-width:0}.side.player{background:#12352e}.side.banker{background:#3b222a}
+.side h3{margin:0 0 7px;font-size:14px}.total{font-size:28px;font-weight:800;margin:7px 0}
+.cardsline{min-height:34px;display:flex;gap:5px;flex-wrap:wrap}
+.pip{padding:5px 8px;border-radius:7px;background:#f4f5f6;color:#17232d;font-weight:800;font-size:13px}
+.rankgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:9px}
+.rankgrid button{padding:10px 2px;border:1px solid var(--line);font-size:14px}
+.rankgrid button:disabled{opacity:.25}
+.addlabel{font-size:12px;color:var(--muted);margin-top:10px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions button{flex:1}
+.statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--panel2);padding:10px;border-radius:11px}.stat b{display:block;font-size:22px;margin-top:3px}
+.result{padding:12px;border-radius:12px;background:var(--panel2);margin-top:10px}
+.bigpick{font-size:24px;font-weight:850;margin:5px 0}
+.pick-player{color:var(--green)}.pick-banker{color:var(--red)}.pick-pass{color:var(--gold)}
+table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:8px 5px;border-bottom:1px solid var(--line);text-align:center}th{color:var(--muted);font-weight:600}
+.scroll{overflow:auto}.badge{font-size:11px;padding:4px 7px;border-radius:20px;background:var(--panel2);color:var(--muted)}
+input,select{width:100%;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text)}
+.notice{font-size:12px;line-height:1.55;color:var(--muted)}
+.hidden{display:none!important}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:8px 20px}
+</style>
+</head>
+<body>
+<header>
+  <div class="row"><div><h1>BACCARAT LAB</h1><div class="sub">百家樂逐張牌輸入・模型 A 實測</div></div><span class="badge">第一版</span></div>
+</header>
+<main>
+<section class="card">
+ <div class="row"><h2>牌靴設定</h2><span class="badge" id="shoeLabel">第 1 靴</span></div>
+ <div class="row">
+  <div style="flex:1"><label class="small">牌副數</label><select id="deckCount"><option value="8" selected>8 副牌</option><option value="6">6 副牌</option></select></div>
+  <div style="flex:1"><label class="small">目前局數</label><div style="font-size:24px;font-weight:800;padding:8px 2px" id="roundCount">0</div></div>
+ </div>
+ <div class="actions"><button class="ghost" id="newShoe">＋ 新牌靴</button><button class="ghost" id="export">匯出資料</button><button class="ghost" id="importBtn">匯入資料</button><input id="fileInput" type="file" accept="application/json" class="hidden"></div>
+</section>
+
+<section class="card">
+ <div class="row"><h2>輸入本局牌張</h2><span class="badge">點選牌面新增</span></div>
+ <div class="sides">
+  <div class="side player">
+   <h3>閒家 PLAYER</h3><div class="cardsline" id="playerCards"></div>
+   <div class="small">總點數</div><div class="total" id="playerTotal">0</div>
+   <div class="addlabel">新增閒家牌</div><div class="rankgrid" id="playerKeys"></div>
+   <button class="ghost" style="width:100%;margin-top:8px" id="clearPlayer">清除閒家牌</button>
+  </div>
+  <div class="side banker">
+   <h3>莊家 BANKER</h3><div class="cardsline" id="bankerCards"></div>
+   <div class="small">總點數</div><div class="total" id="bankerTotal">0</div>
+   <div class="addlabel">新增莊家牌</div><div class="rankgrid" id="bankerKeys"></div>
+   <button class="ghost" style="width:100%;margin-top:8px" id="clearBanker">清除莊家牌</button>
+  </div>
+ </div>
+ <div class="actions"><button class="primary" id="saveRound">記錄本局結果</button><button class="ghost" id="undoDraft">清空本局</button></div>
+ <div class="notice" style="margin-top:9px">點選牌面即可加入；點已加入的牌可刪除。每方最多輸入 3 張。點數依百家樂規則計算：A=1、2～9照牌面、10/J/Q/K=0，總點數取個位數。</div>
+</section>
+
+<section class="card">
+ <h2>模型 A｜前兩手差距變化</h2>
+ <div class="result" id="predictionBox"><div class="small">下一局預測</div><div class="bigpick pick-pass">資料不足，暫不預測</div><div class="notice">至少需要連續兩局非和局紀錄。</div></div>
+ <div class="statgrid" style="margin-top:10px">
+  <div class="stat"><span class="small">已預測</span><b id="predCount">0</b></div>
+  <div class="stat"><span class="small">命中</span><b id="hitCount">0</b></div>
+  <div class="stat"><span class="small">命中率</span><b id="hitRate">—</b></div>
+ </div>
+ <div class="notice" style="margin-top:10px">規則：比較最近兩局的點數差距。差距遞減，預測最後一局勝方；差距遞增，預測最後一局敗方；差距相等則 PASS。若最近一局或前一局是和局，該次預測 PASS。</div>
+</section>
+
+<section class="card">
+ <div class="row"><h2>本靴紀錄</h2><span class="badge" id="shoeResult">尚無紀錄</span></div>
+ <div class="statgrid">
+  <div class="stat"><span class="small">莊勝</span><b id="bankerWins">0</b></div>
+  <div class="stat"><span class="small">閒勝</span><b id="playerWins">0</b></div>
+  <div class="stat"><span class="small">和局</span><b id="ties">0</b></div>
+ </div>
+ <div class="scroll" style="margin-top:10px"><table><thead><tr><th>局</th><th>閒家牌</th><th>莊家牌</th><th>差距</th><th>結果</th><th>預測</th><th>驗證</th></tr></thead><tbody id="history"></tbody></table></div>
+ <div class="actions"><button class="danger" id="deleteLast">刪除最後一局</button><button class="ghost" id="clearAll">清除所有資料</button></div>
+</section>
+
+<section class="card">
+ <h2>牌靴剩餘牌張統計</h2>
+ <div class="row"><span class="small">已輸入牌數</span><b id="usedCards">0 / 416</b></div>
+ <div class="scroll" style="margin-top:8px"><table><thead><tr><th>牌面</th><th>A</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10/J/Q/K</th></tr></thead><tbody><tr id="remainingRow"></tr></tbody></table></div>
+ <div class="notice" style="margin-top:8px">此版只記錄牌面、不記花色。8 副牌每個牌面各 32 張；10、J、Q、K 分別統計，各 32 張。剩餘牌張僅依你輸入的牌計算。</div>
+</section>
+<footer>資料儲存在此 iPhone 的瀏覽器本機。請定期匯出備份。此工具只作統計實測，不保證預測或獲利。</footer>
+</main>
+<script>
+const RANKS=["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+const VALUES={A:1,2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:0,J:0,Q:0,K:0};
+const KEY="baccarat_lab_v1";
+let state=load();
+let draft={player:[],banker:[]};
+function blank(){return {decks:8,shoeNo:1,shoes:[{id:1,rounds:[]}]};}
+function load(){try{return JSON.parse(localStorage.getItem(KEY))||blank()}catch(e){return blank()}}
+function save(){localStorage.setItem(KEY,JSON.stringify(state));}
+function shoe(){return state.shoes[state.shoes.length-1]}
+function total(cards){return cards.reduce((s,c)=>s+VALUES[c],0)%10}
+function result(p,b){return p>b?"PLAYER":b>p?"BANKER":"TIE"}
+function label(x){return x==="PLAYER"?"閒":x==="BANKER"?"莊":x==="TIE"?"和":"PASS"}
+function diff(r){return Math.abs(r.bankerTotal-r.playerTotal)}
+function predictionFor(rounds){
+ if(rounds.length<2)return {direction:"PASS",reason:"至少需要兩局資料"};
+ const a=rounds[rounds.length-2],b=rounds[rounds.length-1];
+ if(a.result==="TIE"||b.result==="TIE")return {direction:"PASS",reason:"最近兩局包含和局，暫停方向判斷"};
+ const change=diff(b)-diff(a);
+ if(change<0)return {direction:b.result,reason:`差距遞減：${diff(a)} → ${diff(b)}；跟隨最後一局勝方`};
+ if(change>0)return {direction:b.result==="PLAYER"?"BANKER":"PLAYER",reason:`差距遞增：${diff(a)} → ${diff(b)}；選擇最後一局敗方`};
+ return {direction:"PASS",reason:`差距相等：${diff(a)} → ${diff(b)}；不下注`};
+}
+function buildKeys(side){
+ const el=document.getElementById(side+"Keys");el.innerHTML="";
+ RANKS.forEach(rank=>{const btn=document.createElement("button");btn.textContent=rank;btn.onclick=()=>addCard(side,rank);el.appendChild(btn)});
+}
+function addCard(side,rank){if(draft[side].length>=3)return alert("每方最多輸入 3 張牌");if(usedCount()+draft.player.length+draft.banker.length>=state.decks*52)return alert("已超過整靴牌數");draft[side].push(rank);renderDraft();}
+function removeCard(side,i){draft[side].splice(i,1);renderDraft();}
+function renderDraft(){
+ ["player","banker"].forEach(side=>{
+  const el=document.getElementById(side+"Cards");el.innerHTML="";
+  draft[side].forEach((r,i)=>{const s=document.createElement("span");s.className="pip";s.textContent=r;s.title="點擊刪除";s.onclick=()=>removeCard(side,i);el.appendChild(s)});
+  document.getElementById(side+"Total").textContent=draft[side].length?total(draft[side]):"0";
+ });
+}
+function usedCount(){return shoe().rounds.reduce((s,r)=>s+r.player.length+r.banker.length,0)}
+function cardCounts(){let c=Object.fromEntries(RANKS.map(r=>[r,0]));shoe().rounds.forEach(g=>[...g.player,...g.banker].forEach(r=>c[r]++));return c}
+function saveRound(){
+ if(!draft.player.length||!draft.banker.length)return alert("莊家與閒家都至少要輸入一張牌");
+ const p=total(draft.player),b=total(draft.banker),res=result(p,b),rounds=shoe().rounds;
+ const pred=predictionFor(rounds);
+ const rec={round:rounds.length+1,player:[...draft.player],banker:[...draft.banker],playerTotal:p,bankerTotal:b,result:res,difference:Math.abs(b-p),prediction:pred.direction,reason:pred.reason,correct:pred.direction==="PASS"?null:pred.direction===res};
+ rounds.push(rec);save();draft={player:[],banker:[]};render();renderDraft();
+}
+function render(){
+ const rounds=shoe().rounds;document.getElementById("shoeLabel").textContent=`第 ${shoe().id} 靴`;
+ document.getElementById("roundCount").textContent=rounds.length;
+ document.getElementById("deckCount").value=state.decks;
+ const next=predictionFor(rounds),box=document.getElementById("predictionBox");
+ const cls=next.direction==="PLAYER"?"pick-player":next.direction==="BANKER"?"pick-banker":"pick-pass";
+ box.innerHTML=`<div class="small">下一局預測</div><div class="bigpick ${cls}">${label(next.direction)}</div><div class="notice">${next.reason}</div>`;
+ const scored=rounds.filter(r=>r.correct!==null),hits=scored.filter(r=>r.correct).length;
+ document.getElementById("predCount").textContent=scored.length;
+ document.getElementById("hitCount").textContent=hits;
+ document.getElementById("hitRate").textContent=scored.length?(hits/scored.length*100).toFixed(1)+"%":"—";
+ const count={BANKER:0,PLAYER:0,TIE:0};rounds.forEach(r=>count[r.result]++);
+ document.getElementById("bankerWins").textContent=count.BANKER;document.getElementById("playerWins").textContent=count.PLAYER;document.getElementById("ties").textContent=count.TIE;
+ document.getElementById("shoeResult").textContent=rounds.length?`${rounds.length} 局`:"尚無紀錄";
+ const body=document.getElementById("history");body.innerHTML="";
+ [...rounds].reverse().forEach(r=>{
+  const tr=document.createElement("tr");
+  const vals=[r.round,r.player.join("-"),r.banker.join("-"),r.difference,label(r.result),label(r.prediction),r.correct===null?"—":r.correct?"中":"未中"];
+  vals.forEach(v=>{const td=document.createElement("td");td.textContent=v;tr.appendChild(td)});
+  body.appendChild(tr);
+ });
+ const counts=cardCounts(),decks=state.decks;
+ document.getElementById("usedCards").textContent=`${usedCount()} / ${decks*52}`;
+ const rem=document.getElementById("remainingRow");rem.innerHTML="";
+ const order=["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+ order.forEach(r=>{const td=document.createElement("td");td.textContent=decks*4-counts[r];rem.appendChild(td)});
+}
+document.getElementById("clearPlayer").onclick=()=>{draft.player=[];renderDraft()};
+document.getElementById("clearBanker").onclick=()=>{draft.banker=[];renderDraft()};
+document.getElementById("undoDraft").onclick=()=>{draft={player:[],banker:[]};renderDraft()};
+document.getElementById("saveRound").onclick=saveRound;
+document.getElementById("newShoe").onclick=()=>{if(!confirm("結束目前牌靴並建立新牌靴？舊資料會保留。"))return;state.shoes.push({id:shoe().id+1,rounds:[]});draft={player:[],banker:[]};save();render();renderDraft()};
+document.getElementById("deleteLast").onclick=()=>{if(!shoe().rounds.length)return;if(confirm("確定刪除本靴最後一局？")){shoe().rounds.pop();save();render()}};
+document.getElementById("clearAll").onclick=()=>{if(confirm("確定清除全部牌靴資料？此操作無法復原，請先匯出備份。")){state=blank();save();render();renderDraft()}};
+document.getElementById("deckCount").onchange=e=>{if(usedCount()>Number(e.target.value)*52){alert("目前已輸入牌數超過所選牌副數，無法更改。");e.target.value=state.decks;return}state.decks=Number(e.target.value);save();render()};
+document.getElementById("export").onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="baccarat-lab-backup.json";a.click();URL.revokeObjectURL(a.href)};
+document.getElementById("importBtn").onclick=()=>document.getElementById("fileInput").click();
+document.getElementById("fileInput").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!data.shoes||!Array.isArray(data.shoes))throw Error();if(confirm("匯入會覆蓋目前資料，確定繼續？")){state=data;save();render();renderDraft()}}catch(err){alert("檔案格式不正確")};e.target.value=""};
+buildKeys("player");buildKeys("banker");render();renderDraft();
+</script>
+</body>
+</html>
